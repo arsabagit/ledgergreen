@@ -8,11 +8,13 @@ export function AuthForm({ onLogin }: { onLogin: () => void }) {
     const [password, setPassword] = useState('');
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const [message, setMessage] = useState<string | null>(null);
 
     const handleAuth = async (e: React.FormEvent) => {
         e.preventDefault();
         setLoading(true);
         setError(null);
+        setMessage(null);
 
         try {
             if (isLogin) {
@@ -21,14 +23,24 @@ export function AuthForm({ onLogin }: { onLogin: () => void }) {
                     password,
                 });
                 if (error) throw error;
+                // If successful, onAuthStateChange in parent will handle session update
+                // But we can call onLogin just in case, though it's empty in parent
+                onLogin();
             } else {
-                const { error } = await supabase.auth.signUp({
+                const { data, error } = await supabase.auth.signUp({
                     email,
                     password,
                 });
                 if (error) throw error;
+
+                // Check if email confirmation is required
+                if (data.user && !data.session) {
+                    setMessage("Account created successfully! Please check your email to confirm your registration.");
+                    return; // Don't call onLogin yet
+                }
+
+                onLogin();
             }
-            onLogin();
         } catch (err: any) {
             setError(err.message);
         } finally {
@@ -49,6 +61,12 @@ export function AuthForm({ onLogin }: { onLogin: () => void }) {
                 {error && (
                     <div className="mb-6 p-4 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 text-sm rounded-lg border border-red-100 dark:border-red-900/50">
                         {error}
+                    </div>
+                )}
+
+                {message && (
+                    <div className="mb-6 p-4 bg-green-50 dark:bg-green-900/20 text-green-600 dark:text-green-400 text-sm rounded-lg border border-green-100 dark:border-green-900/50">
+                        {message}
                     </div>
                 )}
 
@@ -102,7 +120,11 @@ export function AuthForm({ onLogin }: { onLogin: () => void }) {
 
                 <div className="mt-6 text-center text-sm text-gray-500">
                     <button
-                        onClick={() => setIsLogin(!isLogin)}
+                        onClick={() => {
+                            setIsLogin(!isLogin);
+                            setError(null);
+                            setMessage(null);
+                        }}
                         className="text-green-600 hover:text-green-700 font-medium hover:underline"
                     >
                         {isLogin ? "Don't have an account? Sign Up" : 'Already have an account? Sign In'}
