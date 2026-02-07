@@ -2,7 +2,7 @@ import withPWAInit from "@ducanh2912/next-pwa";
 
 const withPWA = withPWAInit({
     dest: "public",
-    disable: false, // Enable in dev so user can test "Install App"
+    disable: true, // Temporarily disable PWA to debug mobile fetch issues
     register: true,
     skipWaiting: true,
 });
